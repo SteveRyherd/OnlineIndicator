@@ -1,0 +1,65 @@
+# Xcode
+build/
+DerivedData/
+*.o
+*.d
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+*.xcuserstate
+*.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
+*.xcodeproj/project.xcworkspace/xcuserdata/
+*.xcscmblueprint
+*.xccheckout
+timeline.xctimeline
+playground.xcworkspace
+
+# Swift Package Manager
+.build/
+.swiftpm/
+*.resolved
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+.fseventsd
+.VolumeIcon.icns
+
+# Secrets
+*.pem
+*.key
+*.p12
+*.cer
+*.mobileprovision
+*.provisionprofile
+secrets.xcconfig
+Config/Secrets.swift
+
+# Archives
+*.dmg
+*.pkg
+*.zip
+*.tar.gz
+*.xcarchive
+
+# Test Output
+*.xcresult
+*.trace
+TestResults/
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+tmp/
+Temp/
