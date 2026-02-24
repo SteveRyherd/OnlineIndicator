@@ -1,20 +1,5 @@
 {
-  "fill" : {
-    "linear-gradient" : [
-      "srgb:1.00000,1.00000,1.00000,1.00000",
-      "srgb:0.92143,0.92145,0.92144,1.00000"
-    ],
-    "orientation" : {
-      "start" : {
-        "x" : 0.5,
-        "y" : 0
-      },
-      "stop" : {
-        "x" : 0.5,
-        "y" : 0.7
-      }
-    }
-  },
+  "fill" : "system-light",
   "groups" : [
     {
       "blend-mode" : "normal",
@@ -50,21 +35,47 @@
           ],
           "image-name" : "wifi.png",
           "name" : "wifi"
-        },
-        {
-          "image-name" : "disk 4.png",
-          "name" : "disk"
         }
       ],
       "lighting" : "individual",
+      "name" : "Group",
+      "opacity" : 1,
+      "position" : {
+        "scale" : 1,
+        "translation-in-points" : [
+          0,
+          0
+        ]
+      },
       "shadow" : {
         "kind" : "neutral",
-        "opacity" : 0.5
+        "opacity" : 1
       },
       "specular" : true,
       "translucency" : {
         "enabled" : true,
         "value" : 0.2
+      }
+    },
+    {
+      "blend-mode" : "normal",
+      "blur-material" : null,
+      "layers" : [
+        {
+          "hidden" : false,
+          "image-name" : "disk.png",
+          "name" : "disk"
+        }
+      ],
+      "lighting" : "individual",
+      "shadow" : {
+        "kind" : "layer-color",
+        "opacity" : 0.5
+      },
+      "specular" : true,
+      "translucency" : {
+        "enabled" : true,
+        "value" : 0.25
       }
     }
   ],
