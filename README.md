@@ -42,7 +42,7 @@ Choose any SF Symbol as your icon, pick any colour for each state, add a custom 
 📡 **Flexible monitoring** <br>
 Choose any URL to ping and set how often the check runs, from every 30 seconds to once an hour.
 
-🔍 **Quick IP peek** <br>
+👀 **Quick IP peek** <br>
 Your IPv4 and IPv6 are always one click away in the menu, tap to copy instantly.
 
 <br>
