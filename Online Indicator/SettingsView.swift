@@ -57,9 +57,16 @@ struct SettingsView: View {
         .background(Color(.windowBackgroundColor))
 
         .sheet(isPresented: $showSymbolBrowser) {
-            SymbolBrowserView()
+            SymbolBrowserView { connected, blocked, noNetwork in
+                connectedSlot  = connected
+                blockedSlot    = blocked
+                noNetworkSlot  = noNetwork
+                IconPreferences.save(connected,  for: .connected)
+                IconPreferences.save(blocked,    for: .blocked)
+                IconPreferences.save(noNetwork,  for: .noNetwork)
+            }
         }
-
+        
         .overlay(alignment: .bottom) {
             if showCopiedToast {
                 HStack(spacing: 8) {
@@ -335,7 +342,7 @@ struct SettingsView: View {
                         Divider().padding(.leading, 14)
 
                         HStack {
-                            Button("SF Symbols") { showSymbolBrowser = true }
+                            Button("Icon Sets") { showSymbolBrowser = true }
                                 .buttonStyle(.plain)
                                 .font(.system(size: 11))
                                 .foregroundStyle(.secondary)

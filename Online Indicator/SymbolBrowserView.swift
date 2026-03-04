@@ -1,336 +1,192 @@
 import SwiftUI
 import AppKit
 
-// MARK: - Notification
+// MARK: - Notification (kept — SettingsView still observes it)
 
 extension Notification.Name {
     static let symbolCopied = Notification.Name("com.OnlineIndicator.symbolCopied")
 }
 
-// MARK: - SF Symbol Browser
+// MARK: - Icon Set Model
+
+struct IconSet: Identifiable {
+    let id = UUID()
+    let name: String
+    let connectedSymbol:  String
+    let blockedSymbol:    String
+    let noNetworkSymbol:  String
+
+    static let connectedColor:  NSColor = .systemGreen
+    static let blockedColor:    NSColor = .systemYellow
+    static let noNetworkColor:  NSColor = .systemRed
+
+    func toSlots() -> (IconPreferences.Slot, IconPreferences.Slot, IconPreferences.Slot) {
+        (
+            IconPreferences.Slot(symbolName: connectedSymbol,  color: IconSet.connectedColor,  menuLabel: "", menuLabelEnabled: false),
+            IconPreferences.Slot(symbolName: blockedSymbol,    color: IconSet.blockedColor,    menuLabel: "", menuLabelEnabled: false),
+            IconPreferences.Slot(symbolName: noNetworkSymbol,  color: IconSet.noNetworkColor,  menuLabel: "", menuLabelEnabled: false)
+        )
+    }
+}
+
+// MARK: - Predefined Sets
+
+private let iconSets: [IconSet] = [
+    IconSet(name: "WiFi",        connectedSymbol: "wifi",                                blockedSymbol: "wifi",                               noNetworkSymbol: "wifi.slash"),
+    IconSet(name: "Status",      connectedSymbol: "checkmark.circle.fill",               blockedSymbol: "exclamationmark.circle.fill",         noNetworkSymbol: "xmark.circle.fill"),
+    IconSet(name: "Shield",      connectedSymbol: "checkmark.shield.fill",                    blockedSymbol: "exclamationmark.shield.fill",              noNetworkSymbol: "xmark.shield.fill"),
+    IconSet(name: "Lock",        connectedSymbol: "lock.open.fill",                      blockedSymbol: "lock.fill",                          noNetworkSymbol: "lock.slash"),
+    IconSet(name: "Bolt",        connectedSymbol: "bolt.fill",                           blockedSymbol: "bolt.fill",                          noNetworkSymbol: "bolt.slash"),
+    IconSet(name: "Signals",     connectedSymbol: "antenna.radiowaves.left.and.right",   blockedSymbol: "dot.radiowaves.left.and.right",       noNetworkSymbol: "wifi.slash"),
+    IconSet(name: "Globe",       connectedSymbol: "globe",                               blockedSymbol: "globe",                              noNetworkSymbol: "wifi.slash"),
+    IconSet(name: "Minimal",     connectedSymbol: "circle.fill",                         blockedSymbol: "circle.fill",                        noNetworkSymbol: "circle.fill"),
+    IconSet(name: "Eye",         connectedSymbol: "eye.fill",                            blockedSymbol: "eye.trianglebadge.exclamationmark",   noNetworkSymbol: "eye.slash"),
+    IconSet(name: "Cloud",       connectedSymbol: "cloud.fill",                          blockedSymbol: "cloud",                         noNetworkSymbol: "cloud.fill"),
+    IconSet(name: "Network",     connectedSymbol: "network",                             blockedSymbol: "network.badge.shield.half.filled",    noNetworkSymbol: "network.slash"),
+    IconSet(name: "Heart",       connectedSymbol: "heart.fill",                          blockedSymbol: "heart.fill",                         noNetworkSymbol: "heart.slash"),
+    IconSet(name: "Bell",        connectedSymbol: "bell.fill",                           blockedSymbol: "bell.badge",                         noNetworkSymbol: "bell.slash"),
+    IconSet(name: "Flag",        connectedSymbol: "flag.fill",                           blockedSymbol: "flag.fill",                          noNetworkSymbol: "flag.slash"),
+    IconSet(name: "Power",       connectedSymbol: "power.circle.fill",                        blockedSymbol: "powerplug.fill",                          noNetworkSymbol: "power"),
+]
+
+// MARK: - Icon Set Browser
 
 struct SymbolBrowserView: View {
 
+    var onSelect: (IconPreferences.Slot, IconPreferences.Slot, IconPreferences.Slot) -> Void
+
     @Environment(\.dismiss) private var dismiss
-    @State private var query = ""
-
-    private var filtered: [String] {
-        let q = query.trimmingCharacters(in: .whitespaces)
-        if q.isEmpty { return Self.allSymbols }
-        return Self.allSymbols.filter { $0.localizedCaseInsensitiveContains(q) }
-    }
-
-    private let columns = Array(repeating: GridItem(.flexible(), spacing: 4), count: 9)
 
     var body: some View {
         VStack(spacing: 0) {
 
-            // ── Title bar ────────────────────────────────────────────
-            HStack {
-                Text("SF Symbols")
-                    .font(.system(size: 13, weight: .semibold))
-                Text("· \(filtered.count)")
-                    .font(.system(size: 12))
-                    .foregroundStyle(.tertiary)
+            // ── Fixed header ──────────────────────────────────────────
+            HStack(alignment: .center) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Icon Sets")
+                        .font(.system(size: 14, weight: .semibold))
+                    Text("Pick a set or customise each state with your own SF Symbols and colours in Appearance.")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
                 Spacer()
-                Button("Done") { dismiss() }
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.small)
+                Button {
+                    dismiss()
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 20))
+                        .foregroundStyle(.secondary)
+                        .symbolRenderingMode(.hierarchical)
+                }
+                .buttonStyle(.plain)
             }
             .padding(.horizontal, 16)
-            .padding(.vertical, 12)
+            .padding(.vertical, 14)
             .background(Color(.windowBackgroundColor))
 
             Divider()
 
-            // ── Search ────────────────────────────────────────────────
-            HStack(spacing: 8) {
-                Image(systemName: "magnifyingglass")
-                    .foregroundStyle(.secondary)
-                    .font(.system(size: 13))
-                TextField("Search symbols…", text: $query)
-                    .textFieldStyle(.plain)
-                    .font(.system(size: 13))
-                if !query.isEmpty {
-                    Button { query = "" } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(.secondary)
-                            .font(.system(size: 12))
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(Color(.controlBackgroundColor))
-            .overlay(
-                Rectangle().frame(height: 1).foregroundStyle(Color.primary.opacity(0.07)),
-                alignment: .bottom
-            )
-
-            // ── Grid ──────────────────────────────────────────────────
-            if filtered.isEmpty {
-                VStack(spacing: 8) {
-                    Image(systemName: "magnifyingglass")
-                        .font(.system(size: 28))
-                        .foregroundStyle(.tertiary)
-                    Text("No symbols found")
-                        .font(.system(size: 13))
-                        .foregroundStyle(.secondary)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else {
-                ScrollView {
-                    LazyVGrid(columns: columns, spacing: 4) {
-                        ForEach(filtered, id: \.self) { name in
-                            SymbolCell(name: name) {
-                                NSPasteboard.general.clearContents()
-                                NSPasteboard.general.setString(name, forType: .string)
-                                dismiss()
-                                NotificationCenter.default.post(
-                                    name: .symbolCopied,
-                                    object: name
-                                )
-                            }
+            // ── Scrollable list only ───────────────────────────────────
+            ScrollView {
+                VStack(spacing: 0) {
+                    ForEach(Array(iconSets.enumerated()), id: \.element.id) { index, set in
+                        IconSetRow(set: set) {
+                            let (c, b, n) = set.toSlots()
+                            onSelect(c, b, n)
+                            dismiss()
+                        }
+                        if index < iconSets.count - 1 {
+                            Divider().padding(.leading, 16)
                         }
                     }
-                    .padding(10)
                 }
+                .background(Color(.controlBackgroundColor))
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10)
+                        .strokeBorder(Color.primary.opacity(0.09), lineWidth: 1)
+                )
+                .padding(16)
             }
+            .scrollContentBackground(.hidden)
+            .background(Color(.windowBackgroundColor))
 
-            // ── Hint bar ──────────────────────────────────────────────
+            // ── Fixed footer ──────────────────────────────────────────
             Divider()
             HStack(spacing: 4) {
                 Image(systemName: "hand.tap")
                     .font(.system(size: 11))
                     .foregroundStyle(.tertiary)
-                Text("Tap any symbol to copy its name and close this panel")
+                Text("Tap a set to apply it to all three states at once")
                     .font(.system(size: 11))
                     .foregroundStyle(.tertiary)
             }
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 7)
+            .padding(.vertical, 8)
             .background(Color(.windowBackgroundColor))
         }
-        .frame(width: 460, height: 500)
+        .frame(width: 340, height: 500)
     }
 }
 
-// MARK: - Symbol Cell
+// MARK: - Set Row
 
-private struct SymbolCell: View {
+private struct IconSetRow: View {
 
-    let name: String
+    let set: IconSet
     let onTap: () -> Void
     @State private var hovered = false
 
     var body: some View {
         Button(action: onTap) {
-            Image(systemName: name)
-                .font(.system(size: 17, weight: .regular))
-                .symbolRenderingMode(.monochrome)
-                .frame(width: 36, height: 36)
-                .background(
-                    RoundedRectangle(cornerRadius: 7)
-                        .fill(hovered ? Color.accentColor.opacity(0.15) : Color.clear)
-                )
-                .contentShape(Rectangle())
+            HStack(spacing: 14) {
+
+                Text(set.name)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(.primary)
+                    .frame(width: 64, alignment: .leading)
+
+                Spacer()
+
+                HStack(spacing: 12) {
+                    IconPreviewCell(symbol: set.connectedSymbol,  color: Color(IconSet.connectedColor))
+                    IconPreviewCell(symbol: set.blockedSymbol,    color: Color(IconSet.blockedColor))
+                    IconPreviewCell(symbol: set.noNetworkSymbol,  color: Color(IconSet.noNetworkColor))
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+            .background(hovered ? Color.accentColor.opacity(0.07) : Color.clear)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .help(name)
         .onHover { hovered = $0 }
     }
 }
 
-// MARK: - 500+ Pro Symbol Library (macOS Sonoma safe)
+// MARK: - Single icon preview inside a row
 
-extension SymbolBrowserView {
+private struct IconPreviewCell: View {
 
-    static let allSymbols: [String] = {
+    let symbol: String
+    let color:  Color
 
-        let candidates: [String] = [
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 7)
+                .fill(color.opacity(0.15))
+                .frame(width: 32, height: 32)
 
-        // ===== NETWORK CORE =====
-        "wifi","wifi.slash","wifi.exclamationmark","wifi.circle","wifi.square",
-        "wifi.router","network","network.slash",
-        "antenna.radiowaves.left.and.right",
-        "antenna.radiowaves.left.and.right.slash",
-        "dot.radiowaves.left.and.right",
-        "dot.radiowaves.forward",
-        "dot.radiowaves.right",
-        "globe","globe.americas","globe.europe.africa","globe.asia.australia",
-        "globe.central.south.asia",
-        "cable.connector","server.rack",
-        "externaldrive.connected.to.line.below",
-        "network.badge.shield.half.filled",
-
-        // ===== SPEED / PERFORMANCE =====
-        "speedometer","gauge","timer","stopwatch",
-        "bolt","bolt.fill","bolt.circle","bolt.horizontal",
-        "bolt.horizontal.circle","bolt.slash",
-        "hare","tortoise",
-        "arrow.up","arrow.down","arrow.left","arrow.right",
-        "arrow.clockwise","arrow.counterclockwise",
-        "arrow.triangle.2.circlepath",
-        "arrow.up.circle","arrow.down.circle",
-        "arrow.left.circle","arrow.right.circle",
-        "arrow.up.arrow.down","arrow.left.arrow.right",
-        "arrow.up.and.down","arrow.left.and.right",
-        "repeat","shuffle","infinity",
-
-        // ===== STATUS =====
-        "circle","circle.fill","circle.dashed","circle.dotted",
-        "checkmark","xmark","plus","minus",
-        "checkmark.circle","checkmark.circle.fill",
-        "xmark.circle","xmark.circle.fill",
-        "plus.circle","minus.circle",
-        "exclamationmark.circle","exclamationmark.circle.fill",
-        "questionmark.circle","info.circle",
-        "checkmark.seal","checkmark.shield",
-        "xmark.seal","xmark.shield",
-
-        // ===== SECURITY / VPN =====
-        "lock","lock.fill","lock.open","lock.slash",
-        "lock.shield","lock.shield.fill",
-        "lock.rotation",
-        "shield","shield.fill","shield.slash",
-        "shield.lefthalf.filled",
-        "checkmark.shield","xmark.shield","exclamationmark.shield",
-        "key","key.fill","key.slash",
-        "key.icloud","key.radiowaves.forward",
-        "eye","eye.fill","eye.slash","eye.circle",
-        "eye.trianglebadge.exclamationmark",
-        "hand.raised","hand.raised.slash",
-
-        // ===== CLOUD / INTERNET =====
-        "icloud","icloud.fill","icloud.slash",
-        "icloud.and.arrow.up","icloud.and.arrow.down",
-        "externaldrive","externaldrive.fill","externaldrive.badge.plus",
-        "internaldrive","internaldrive.fill",
-        "cloud","cloud.fill","cloud.slash",
-        "cloud.bolt","cloud.bolt.rain",
-        "cloud.rain","cloud.heavyrain",
-        "cloud.snow","cloud.sun","cloud.moon",
-        "cloud.fog","cloud.hail","cloud.drizzle",
-
-        // ===== DEVICES =====
-        "desktopcomputer","laptopcomputer","display",
-        "display.trianglebadge.exclamationmark",
-        "iphone","iphone.circle","iphone.slash",
-        "ipad","ipad.landscape",
-        "applewatch","applewatch.slash",
-        "tv","tv.fill","tv.slash",
-        "keyboard","keyboard.fill","keyboard.slash",
-        "mouse","mouse.fill","trackpad","trackpad.fill",
-        "printer","printer.fill","printer.slash",
-        "scanner","camera","camera.fill","camera.slash",
-        "video","video.fill","video.slash",
-        "speaker","speaker.fill","speaker.slash",
-        "speaker.wave.1","speaker.wave.2","speaker.wave.3",
-        "mic","mic.fill","mic.slash",
-        "cpu","memorychip","opticaldiscdrive",
-
-        // ===== DATA / TRAFFIC =====
-        "chart.bar","chart.bar.fill","chart.bar.xaxis",
-        "chart.pie","chart.pie.fill",
-        "chart.line.uptrend.xyaxis","chart.line.downtrend.xyaxis",
-        "chart.xyaxis.line",
-        "waveform","waveform.circle",
-        "waveform.path.ecg",
-        "arrow.up.doc","arrow.down.doc",
-        "arrow.up.circle","arrow.down.circle",
-        "arrow.left.arrow.right.circle",
-        "arrow.up.arrow.down.circle",
-
-        // ===== POWER =====
-        "power","power.circle","powerplug",
-        "battery.100","battery.75","battery.50","battery.25","battery.0",
-        "battery.100.bolt","battery.exclamationmark",
-        "bolt.batteryblock",
-
-        // ===== ALERT / WARNING =====
-        "exclamationmark.triangle","exclamationmark.octagon",
-        "exclamationmark.shield",
-        "bell","bell.fill","bell.slash","bell.badge",
-        "flag","flag.fill","flag.slash",
-        "nosign","slash.circle","xmark.octagon",
-
-        // ===== TOOLS =====
-        "gear","gearshape","gearshape.fill",
-        "gearshape.2","gearshape.2.fill",
-        "slider.horizontal.3","slider.vertical.3",
-        "switch.2","dial.low","dial.medium","dial.high",
-        "wrench","wrench.fill",
-        "hammer","hammer.fill",
-        "screwdriver","wrench.and.screwdriver",
-        "paintbrush","paintbrush.fill",
-        "scissors","pencil","highlighter",
-
-        // ===== USER =====
-        "person","person.fill","person.2","person.3",
-        "person.crop.circle","person.crop.circle.fill",
-        "person.badge.plus","person.badge.minus",
-        "person.badge.shield.checkmark",
-        "figure.walk","figure.run","figure.stand",
-        "figure.wave","figure.cooldown",
-
-        // ===== LOCATION =====
-        "location","location.fill","location.slash",
-        "location.circle","location.square",
-        "map","map.fill",
-        "mappin","mappin.circle",
-        "location.north","location.north.circle",
-        "airplane","airplane.circle",
-        "car","car.fill","bus","tram","bicycle",
-
-        // ===== TIME =====
-        "clock","clock.fill","clock.circle",
-        "alarm","alarm.fill",
-        "timer","hourglass",
-        "calendar","calendar.badge.clock",
-
-        // ===== COMMUNICATION =====
-        "message","message.fill","bubble.left","bubble.right",
-        "bubble.left.and.bubble.right",
-        "phone","phone.fill","phone.slash",
-        "envelope","envelope.fill","envelope.badge",
-        "video.badge.plus","megaphone",
-
-        // ===== FAVORITES USERS EXPECT =====
-        "star","star.fill","star.circle",
-        "bookmark","bookmark.fill",
-        "heart","heart.fill","heart.circle",
-        "flame","drop","leaf","sparkles",
-        "moon","sun.max","sunrise","sunset",
-
-        // ===== DEV / PRO =====
-        "terminal","curlybraces","chevron.left.slash.chevron.right",
-        "app","app.fill","shippingbox","cube",
-        "puzzlepiece","shippingbox.fill",
-        "qrcode","barcode","viewfinder",
-
-        // ===== EXTRA MASS (for 500+) =====
-        "square","square.fill","rectangle","triangle","diamond",
-        "seal","rosette","tag","tag.fill",
-        "tray","tray.fill","archivebox","archivebox.fill",
-        "doc","doc.fill","doc.text","doc.richtext",
-        "folder","folder.fill","folder.badge.plus",
-        "trash","trash.fill","trash.slash",
-        "link","link.circle","link.badge.plus",
-        "pin","pin.fill","pin.circle",
-        "cart","cart.fill","creditcard","bag",
-        "gift","banknote","chart.donut",
-        "music.note","play.fill","pause.fill","stop.fill",
-        "forward","backward","record.circle",
-        "gamecontroller","dice","trophy","medal"
-        ]
-
-        // macOS validation filter
-        let valid = candidates.filter {
-            NSImage(systemSymbolName: $0, accessibilityDescription: nil) != nil
+            if NSImage(systemSymbolName: symbol, accessibilityDescription: nil) != nil {
+                Image(systemName: symbol)
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(color)
+            } else {
+                Image(systemName: "questionmark")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(.secondary)
+            }
         }
-
-        // remove duplicates + sort
-        return Array(Set(valid)).sorted()
-    }()
+    }
 }
