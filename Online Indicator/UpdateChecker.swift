@@ -4,7 +4,7 @@ import AppKit
 class UpdateChecker {
 
     static let repoOwner = "bornexplorer"
-    static let repoName  = "online_indicator"
+    static let repoName  = "OnlineIndicator"
 
     private static var apiURL: URL? {
         URL(string: "https://api.github.com/repos/\(repoOwner)/\(repoName)/releases/latest")
