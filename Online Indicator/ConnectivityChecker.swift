@@ -2,7 +2,12 @@ import Foundation
 
 class ConnectivityChecker {
 
-    static let monitoringURLString = "http://captive.apple.com"
+    static let defaultURLString = "http://captive.apple.com"
+
+    static var monitoringURLString: String {
+        let saved = UserDefaults.standard.string(forKey: "pingURL") ?? ""
+        return saved.isEmpty ? defaultURLString : saved
+    }
 
     func checkOutboundConnection(completion: @escaping (Bool) -> Void) {
 

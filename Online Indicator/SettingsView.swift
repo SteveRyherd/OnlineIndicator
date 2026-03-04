@@ -9,9 +9,9 @@ struct SettingsView: View {
         return v == 0 ? 60 : v
     }()
     @State private var intervalText     = ""
-    @State private var manualURL        = ""
-    @State private var testStatus: TestStatus = .idle
     @State private var intervalSaved    = false
+    @State private var pingURL          = ""
+    @State private var pingURLSaved     = false
     @State private var isLaunchEnabled  = false
 
     // MARK: Update state
@@ -30,35 +30,6 @@ struct SettingsView: View {
     @State private var showSymbolBrowser = false
     @State private var showCopiedToast   = false
     @State private var copiedSymbolName  = ""
-
-    enum TestStatus: Equatable {
-        case idle, testing, success, failure(String)
-
-        var message: String? {
-            switch self {
-            case .idle:              return nil
-            case .testing:          return "Testing…"
-            case .success:          return "Connection successful"
-            case .failure(let msg): return msg
-            }
-        }
-
-        var color: Color {
-            switch self {
-            case .success: return .green
-            case .failure: return .red
-            default:       return .secondary
-            }
-        }
-
-        var icon: String? {
-            switch self {
-            case .success:  return "checkmark.circle.fill"
-            case .failure:  return "xmark.circle.fill"
-            default:        return nil
-            }
-        }
-    }
 
     // MARK: - Body
 
@@ -134,6 +105,7 @@ struct SettingsView: View {
         .onAppear {
             isLaunchEnabled = LoginItemManager.shared.isEnabled()
             intervalText    = formatInterval(interval)
+            pingURL         = UserDefaults.standard.string(forKey: "pingURL") ?? ""
             connectedSlot   = IconPreferences.slot(for: .connected)
             blockedSlot     = IconPreferences.slot(for: .blocked)
             noNetworkSlot   = IconPreferences.slot(for: .noNetwork)
@@ -248,8 +220,6 @@ struct SettingsView: View {
                         }
                     }
 
-                    Divider().padding(.leading, 56)
-
                     HStack(spacing: 0) {
                         Spacer().frame(width: 56)
                         HStack(spacing: 6) {
@@ -278,57 +248,48 @@ struct SettingsView: View {
                         Spacer()
                     }
                     .padding(.vertical, 10)
-                }
 
-                // Manual Test
-                SettingsSection(title: "Manual Test") {
+                    Divider().padding(.leading, 56)
+
                     SettingsRow(
-                        icon: "network",
+                        icon: "target",
                         iconColor: .green,
-                        title: "Connection Test",
-                        subtitle: "Check reachability without affecting monitoring"
+                        title: "Ping URL",
+                        subtitle: "URL used to test outbound connectivity"
                     ) {
                         EmptyView()
                     }
 
                     HStack(spacing: 0) {
                         Spacer().frame(width: 56)
-                        TextField("https://example.com", text: $manualURL)
-                            .textFieldStyle(.roundedBorder)
+                        HStack(spacing: 8) {
+                            TextField(ConnectivityChecker.defaultURLString, text: $pingURL)
+                                .textFieldStyle(.roundedBorder)
+                                .font(.system(size: 12, design: .monospaced))
+
+                            Button("Apply") { applyPingURL() }
+                                .buttonStyle(.bordered)
+                                .controlSize(.small)
+
+                            if pingURLSaved {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundStyle(.green)
+                                    .transition(.scale.combined(with: .opacity))
+                            }
+                        }
+                        .padding(.trailing, 18)
                     }
-                    .padding(.bottom, 8)
-                    .padding(.trailing, 18)
+                    .padding(.bottom, 4)
 
                     HStack(spacing: 0) {
                         Spacer().frame(width: 56)
-                        HStack(spacing: 10) {
-                            Button("Test Connection") { testConnection() }
-                                .buttonStyle(.bordered)
-                                .controlSize(.small)
-                                .disabled(testStatus == .testing)
-
-                            if testStatus == .testing {
-                                ProgressView()
-                                    .controlSize(.small)
-                                    .scaleEffect(0.8)
-                            }
-
-                            if let msg = testStatus.message, testStatus != .testing {
-                                HStack(spacing: 4) {
-                                    if let icon = testStatus.icon {
-                                        Image(systemName: icon)
-                                            .font(.system(size: 12))
-                                    }
-                                    Text(msg)
-                                        .font(.system(size: 12))
-                                        .lineLimit(1)
-                                }
-                                .foregroundStyle(testStatus.color)
-                                .transition(.opacity.combined(with: .move(edge: .leading)))
-                            }
-
-                            Spacer()
-                        }
+                        Button("Restore Default") { restoreDefaultPingURL() }
+                            .buttonStyle(.plain)
+                            .font(.system(size: 11))
+                            .foregroundStyle(.secondary)
+                            .disabled(pingURL.isEmpty)
+                            .opacity(pingURL.isEmpty ? 0.4 : 1)
+                        Spacer()
                     }
                     .padding(.bottom, 12)
                 }
@@ -441,34 +402,28 @@ struct SettingsView: View {
         }
     }
 
-    private func testConnection() {
-        guard let url = URL(string: manualURL), !manualURL.isEmpty else {
-            withAnimation { testStatus = .failure("Invalid URL") }
-            return
+    private func applyPingURL() {
+        let trimmed = pingURL.trimmingCharacters(in: .whitespaces)
+        if trimmed.isEmpty {
+            UserDefaults.standard.removeObject(forKey: "pingURL")
+        } else {
+            UserDefaults.standard.set(trimmed, forKey: "pingURL")
         }
-        withAnimation { testStatus = .testing }
 
-        var request = URLRequest(url: url)
-        request.httpMethod      = "GET"
-        request.timeoutInterval = 5
+        withAnimation { pingURLSaved = true }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+            withAnimation { pingURLSaved = false }
+        }
+    }
 
-        URLSession.shared.dataTask(with: request) { _, response, error in
-            DispatchQueue.main.async {
-                withAnimation {
-                    if let error = error {
-                        testStatus = .failure(error.localizedDescription)
-                    } else if let http = response as? HTTPURLResponse,
-                              (200...399).contains(http.statusCode) {
-                        testStatus = .success
-                    } else {
-                        testStatus = .failure("Website unreachable")
-                    }
-                }
-                DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-                    withAnimation { testStatus = .idle }
-                }
-            }
-        }.resume()
+    private func restoreDefaultPingURL() {
+        UserDefaults.standard.removeObject(forKey: "pingURL")
+        withAnimation { pingURL = "" }
+
+        withAnimation { pingURLSaved = true }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+            withAnimation { pingURLSaved = false }
+        }
     }
 
     private func checkForUpdates() {
