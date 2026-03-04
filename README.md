@@ -22,23 +22,27 @@ A lightweight, customisable macOS menu bar utility that replaces the default Wi-
 
 ## Why Online Indicator?
 
-The macOS Wi-Fi icon only shows whether you’re connected to a router. It doesn’t tell you if your internet is actually working or if something is blocking your connection.
-
-Online Indicator replaces it with a live status icon that checks whether your internet traffic is getting through. You can instantly see if you’re online, offline, or blocked without opening any apps.
-
-You can also customize the icon using Apple’s SF Symbols and choose your own colors for each status, so it looks and works the way you prefer. This way, you can understand your network status at a glance.
+The macOS WiFi icon only shows that you are connected to a router, not whether your internet is actually working or being blocked. Online Indicator replaces it with a live status icon that verifies real internet connectivity at the network level, so you can instantly see if you are online, offline, or blocked without opening any apps, giving you a smarter and slightly geekier way to understand your connection at a glance.
 
 <br>
 
 ## Features
 
-- **Live status in the menu bar** — see at a glance if you're online, blocked, or offline
-- **Three distinct states** — Connected, Blocked (network up but no internet), and No Network
-- **Customisable check interval** — 30 seconds(default) or set your own
-- **Custom ping URL** — test against any endpoint you choose, not just the default
-- **Fully customisable icons** — choose any SF Symbol and any colour for each state
-- **Optional menu bar label** — add a short text label alongside the icon
-- **Local IP address display** — see your IPv4 and IPv6 addresses directly from the menu
+🛜 **Ditch the boring Wi-Fi icon** <br>
+Your menu bar deserves better than a grey Wi-Fi symbol that tells you nothing. Online Indicator replaces it with a live status icon that actually means something: <br>
+🟢 Green when you're online <br>
+🟡 Yellow when something's off <br>
+🔴 Red when you're out <br>
+Three states, always in sight, no guessing.
+
+🎨 **Make it yours** <br>
+Choose any SF Symbol as your icon, pick any colour for each state, add a custom text label that shows right in the menu bar, or apply one of 15 ready-made Icon Sets to change the whole look in a single tap.
+
+📡 **Flexible monitoring** <br>
+Choose any URL to ping and set how often the check runs, from every 30 seconds to once an hour.
+
+🔍 **Quick IP peek** <br>
+Your IPv4 and IPv6 are always one click away in the menu, tap to copy instantly.
 
 <br>
 
