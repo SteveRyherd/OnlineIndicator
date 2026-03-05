@@ -118,8 +118,8 @@ struct OnboardingView: View {
 
             // MARK: Status rows
             VStack(spacing: 0) {
-                StatusRow(icon: "circle.fill", color: .green,  label: "Connected to the internet")
-                StatusRow(icon: "circle.fill", color: .yellow, label: "Network present but traffic is blocked")
+                StatusRow(icon: "wifi", color: .green,  label: "Connected to the internet")
+                StatusRow(icon: "wifi", color: .yellow, label: "Network present but traffic is blocked")
                 StatusRow(icon: "wifi.slash",  color: .red,    label: "No network interface found")
             }
             .padding(.horizontal, 24)

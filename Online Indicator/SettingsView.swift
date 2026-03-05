@@ -22,6 +22,7 @@ struct SettingsView: View {
         case error(String)
     }
     @State private var updateStatus: UpdateStatus = .idle
+    @State private var cachedUpdateURL: URL?
 
     @State private var connectedSlot     = IconPreferences.slot(for: .connected)
     @State private var blockedSlot       = IconPreferences.slot(for: .blocked)
@@ -673,7 +674,8 @@ struct SettingsView: View {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 4) {
                         withAnimation { updateStatus = .idle }
                     }
-                case .updateAvailable(let tag, _, _, _):
+                case .updateAvailable(let tag, _, let downloadURL, let pageURL):
+                    cachedUpdateURL = downloadURL ?? pageURL
                     updateStatus = .available(tag: tag)
                 case .error(let msg):
                     updateStatus = .error(msg)
@@ -686,11 +688,8 @@ struct SettingsView: View {
     }
 
     private func openLatestRelease() {
-        UpdateChecker.check { result in
-            if case .updateAvailable(_, _, let downloadURL, let pageURL) = result {
-                NSWorkspace.shared.open(downloadURL ?? pageURL)
-            }
-        }
+        guard let url = cachedUpdateURL else { return }
+        NSWorkspace.shared.open(url)
     }
 }
 

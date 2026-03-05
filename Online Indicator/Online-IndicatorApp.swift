@@ -225,7 +225,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWindowDele
     // MARK: - Onboarding
 
     private func showOnboarding() {
-        let view = OnboardingView { [weak self] in self?.startApp() }
+        let view = OnboardingView { [weak self] in
+            self?.startApp()
+            self?.onboardingWindow = nil
+        }
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 420, height: 480),
             styleMask: [.titled, .closable],

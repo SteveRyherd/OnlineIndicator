@@ -9,6 +9,18 @@ class ConnectivityChecker {
         return saved.isEmpty ? defaultURLString : saved
     }
 
+    private var currentTask: URLSessionDataTask?
+
+    private let session: URLSession = {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.timeoutIntervalForRequest = 5
+        configuration.timeoutIntervalForResource = 5
+        configuration.requestCachePolicy = .reloadIgnoringLocalCacheData
+        configuration.httpMaximumConnectionsPerHost = 1
+        configuration.httpAdditionalHeaders = ["Connection": "close"]
+        return URLSession(configuration: configuration)
+    }()
+
     func checkOutboundConnection(completion: @escaping (Bool) -> Void) {
 
         print("Attempting outbound connection to:", Self.monitoringURLString)
@@ -18,22 +30,21 @@ class ConnectivityChecker {
             return
         }
 
-        let configuration = URLSessionConfiguration.ephemeral
-        configuration.timeoutIntervalForRequest = 5
-        configuration.timeoutIntervalForResource = 5
-        configuration.requestCachePolicy = .reloadIgnoringLocalCacheData
-        configuration.httpMaximumConnectionsPerHost = 1
-        configuration.httpAdditionalHeaders = ["Connection": "close"]
-
-        let session = URLSession(configuration: configuration)
+        currentTask?.cancel()
+        currentTask = nil
 
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         request.timeoutInterval = 5
 
-        let task = session.dataTask(with: request) { _, response, error in
+        let task = session.dataTask(with: request) { [weak self] _, response, error in
 
-            defer { session.finishTasksAndInvalidate() }
+            if let urlError = error as? URLError, urlError.code == .cancelled {
+
+                return
+            }
+
+            self?.currentTask = nil
 
             if let error = error {
                 print("Outbound Error:", error.localizedDescription)
@@ -49,6 +60,7 @@ class ConnectivityChecker {
             }
         }
 
+        currentTask = task
         task.resume()
     }
 }
