@@ -55,7 +55,7 @@ struct UserIconSet: Codable, Identifiable {
         noNetworkMenuLabelEnabled  = try c.decodeIfPresent(Bool.self,   forKey: .noNetworkMenuLabelEnabled) ?? false
     }
 
-    // Memberwise init for creating new sets
+
     init(id: UUID = UUID(), name: String,
          connectedSymbol: String, connectedColorRGBA: [Double], connectedMenuLabel: String, connectedMenuLabelEnabled: Bool,
          blockedSymbol: String, blockedColorRGBA: [Double], blockedMenuLabel: String, blockedMenuLabelEnabled: Bool,
@@ -206,7 +206,6 @@ private let iconSets: [IconSet] = [
 
 struct SymbolBrowserView: View {
 
-    // Store owned by SettingsView; passed in so saves and deletes persist across sheet open/close
     @ObservedObject var store: UserIconSetsStore
     var onSelect: (IconPreferences.Slot, IconPreferences.Slot, IconPreferences.Slot) -> Void
 
@@ -216,7 +215,6 @@ struct SymbolBrowserView: View {
     var body: some View {
         VStack(spacing: 0) {
 
-            // ── Fixed header ──────────────────────────────────────────
             VStack(spacing: 10) {
                 HStack(alignment: .center) {
                     VStack(alignment: .leading, spacing: 3) {
@@ -253,14 +251,14 @@ struct SymbolBrowserView: View {
 
             Divider()
 
-            // ── Scrollable content ────────────────────────────────────
+            
             if selectedTab == 0 {
                 defaultSetsScrollView
             } else {
                 userSetsScrollView
             }
 
-            // ── Fixed footer ──────────────────────────────────────────
+            
             Divider()
             HStack(spacing: 4) {
                 Image(systemName: "hand.tap")
@@ -333,7 +331,6 @@ struct SymbolBrowserView: View {
                     VStack(spacing: 0) {
                         ForEach(Array(store.sets.enumerated()), id: \.element.id) { index, set in
                             UserSetRow(set: set) {
-                                // Click-to-apply: applies all slots including menuLabel
                                 let (c, b, n) = set.toSlots()
                                 onSelect(c, b, n)
                                 dismiss()
