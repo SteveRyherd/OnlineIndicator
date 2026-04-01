@@ -22,13 +22,25 @@ struct SettingsView: View {
     @State private var rightClickAction      = "menu"
 
     enum UpdateStatus: Equatable {
-        case idle, checking
-        case available(tag: String)
+        case idle
+        case checking
         case upToDate
+        /// A newer version is available on GitHub.
+        case available(tag: String, downloadURL: URL?, pageURL: URL)
+        /// Downloading the .dmg; progress is 0…1.
+        case downloading(progress: Double)
+        /// .dmg downloaded and ready to install.
+        case readyToInstall(dmgURL: URL, tag: String)
+        /// Install is in progress.
+        case installing
         case error(String)
     }
     @State private var updateStatus: UpdateStatus = .idle
-    @State private var cachedUpdateURL: URL?
+
+    // Cached values so we can restore the .available state after a failed download / cancel
+    @State private var cachedUpdateTag:   String = ""
+    @State private var cachedDownloadURL: URL?   = nil
+    @State private var cachedPageURL:     URL?   = nil
 
     @State private var connectedSlot     = IconPreferences.slot(for: .connected)
     @State private var blockedSlot       = IconPreferences.slot(for: .blocked)
@@ -272,56 +284,37 @@ struct SettingsView: View {
 
                     Divider().padding(.leading, 56)
 
+                    // MARK: Check for Updates
+
                     SettingsRow(
                         icon: "arrow.down.circle.fill",
                         iconColor: .blue,
                         title: "Check for Updates",
                         subtitle: "Version \(AppInfo.marketingVersion) (Build \(AppInfo.buildVersion))"
                     ) {
-                        HStack(spacing: 8) {
-                            switch updateStatus {
-                            case .idle:
-                                Button("Check") { checkForUpdates() }
-                                    .buttonStyle(.bordered)
-                                    .controlSize(.small)
-                                    .transition(.opacity.combined(with: .scale))
-                            case .checking:
-                                HStack(spacing: 6) {
-                                    ProgressView()
-                                        .controlSize(.small)
-                                        .scaleEffect(0.8)
-                                    Text("Checking…")
-                                        .font(.system(size: 12))
-                                        .foregroundStyle(.secondary)
-                                }
-                                .transition(.opacity)
-                            case .upToDate:
-                                HStack(spacing: 4) {
-                                    Image(systemName: "checkmark.circle.fill")
-                                        .foregroundStyle(.green)
-                                    Text("Up to date")
-                                        .foregroundStyle(.green)
-                                }
-                                .font(.system(size: 12))
-                                .transition(.opacity.combined(with: .scale))
-                            case .available(let tag):
-                                Button("Update to \(tag)") { openLatestRelease() }
-                                    .buttonStyle(.borderedProminent)
-                                    .controlSize(.small)
-                                    .transition(.opacity.combined(with: .scale))
-                            case .error(let msg):
-                                HStack(spacing: 4) {
-                                    Image(systemName: "exclamationmark.circle.fill")
-                                        .foregroundStyle(.red)
-                                    Text(msg)
-                                        .foregroundStyle(.red)
-                                        .lineLimit(1)
-                                }
-                                .font(.system(size: 11))
-                                .transition(.opacity)
+                        updateControl
+                    }
+
+                    // Download progress bar — shown as a separate sub-row below the main row
+                    // so the linear bar has room to breathe.
+                    if case .downloading(let progress) = updateStatus {
+                        HStack(spacing: 0) {
+                            Spacer().frame(width: 56)
+                            HStack(spacing: 8) {
+                                ProgressView(value: progress)
+                                    .progressViewStyle(.linear)
+                                    .tint(.blue)
+                                    .frame(maxWidth: .infinity)
+                                Text("\(Int(progress * 100))%")
+                                    .font(.system(size: 11, weight: .medium))
+                                    .monospacedDigit()
+                                    .foregroundStyle(.secondary)
+                                    .frame(width: 34, alignment: .trailing)
                             }
+                            .padding(.trailing, 14)
                         }
-                        .animation(.easeInOut(duration: 0.2), value: updateStatus)
+                        .padding(.bottom, 10)
+                        .transition(.opacity.combined(with: .move(edge: .top)))
                     }
                 }
 
@@ -485,6 +478,107 @@ struct SettingsView: View {
         }
         .scrollContentBackground(.hidden)
         .background(Color(.windowBackgroundColor))
+    }
+
+    // MARK: - Update control (right-side of the Check for Updates row)
+
+    @ViewBuilder
+    private var updateControl: some View {
+        HStack(spacing: 8) {
+            switch updateStatus {
+
+            case .idle:
+                Button("Check") { checkForUpdates() }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    .transition(.opacity.combined(with: .scale))
+
+            case .checking:
+                HStack(spacing: 6) {
+                    ProgressView()
+                        .controlSize(.small)
+                        .scaleEffect(0.8)
+                    Text("Checking…")
+                        .font(.system(size: 12))
+                        .foregroundStyle(.secondary)
+                }
+                .transition(.opacity)
+
+            case .upToDate:
+                HStack(spacing: 4) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(.green)
+                    Text("Up to date")
+                        .foregroundStyle(.green)
+                }
+                .font(.system(size: 12))
+                .transition(.opacity.combined(with: .scale))
+
+            case .available(let tag, let dlURL, _):
+                HStack(spacing: 6) {
+                    if dlURL != nil {
+                        Button("Download \(tag)") { startDownload() }
+                            .buttonStyle(.borderedProminent)
+                            .controlSize(.small)
+                            .transition(.opacity.combined(with: .scale))
+                    } else {
+                        // No .dmg asset — send to the release page
+                        Button("View Release") { openPageURL() }
+                            .buttonStyle(.borderedProminent)
+                            .controlSize(.small)
+                            .transition(.opacity.combined(with: .scale))
+                    }
+                    // Release notes link
+                    Button {
+                        openPageURL()
+                    } label: {
+                        Image(systemName: "arrow.up.right.square")
+                            .font(.system(size: 13))
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .help("View release notes on GitHub")
+                    .transition(.opacity)
+                }
+
+            case .downloading:
+                // Progress bar is rendered as a separate sub-row below; show only Cancel here
+                Button("Cancel") { cancelDownload() }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    .transition(.opacity.combined(with: .scale))
+
+            case .readyToInstall(_, let tag):
+                Button("Install \(tag)") { installUpdate() }
+                    .buttonStyle(.borderedProminent)
+                    .tint(.green)
+                    .controlSize(.small)
+                    .transition(.opacity.combined(with: .scale))
+
+            case .installing:
+                HStack(spacing: 6) {
+                    ProgressView()
+                        .controlSize(.small)
+                        .scaleEffect(0.8)
+                    Text("Installing…")
+                        .font(.system(size: 12))
+                        .foregroundStyle(.secondary)
+                }
+                .transition(.opacity)
+
+            case .error(let msg):
+                HStack(spacing: 4) {
+                    Image(systemName: "exclamationmark.circle.fill")
+                        .foregroundStyle(.red)
+                    Text(msg)
+                        .foregroundStyle(.red)
+                        .lineLimit(1)
+                }
+                .font(.system(size: 11))
+                .transition(.opacity)
+            }
+        }
+        .animation(.easeInOut(duration: 0.2), value: updateStatus)
     }
 
     // MARK: - Tab 2: Appearance
@@ -759,6 +853,8 @@ struct SettingsView: View {
         }
     }
 
+    // MARK: - Update helpers
+
     private func checkForUpdates() {
         withAnimation { updateStatus = .checking }
         UpdateChecker.check { result in
@@ -770,8 +866,10 @@ struct SettingsView: View {
                         withAnimation { updateStatus = .idle }
                     }
                 case .updateAvailable(let tag, _, let downloadURL, let pageURL):
-                    cachedUpdateURL = downloadURL ?? pageURL
-                    updateStatus = .available(tag: tag)
+                    cachedUpdateTag   = tag
+                    cachedDownloadURL = downloadURL
+                    cachedPageURL     = pageURL
+                    updateStatus = .available(tag: tag, downloadURL: downloadURL, pageURL: pageURL)
                 case .error(let msg):
                     updateStatus = .error(msg)
                     DispatchQueue.main.asyncAfter(deadline: .now() + 4) {
@@ -782,9 +880,79 @@ struct SettingsView: View {
         }
     }
 
-    private func openLatestRelease() {
-        guard let url = cachedUpdateURL else { return }
+    private func startDownload() {
+        guard case .available(let tag, let dlURL, _) = updateStatus,
+              let downloadURL = dlURL else { return }
+
+        withAnimation { updateStatus = .downloading(progress: 0) }
+
+        UpdateChecker.shared.startDownload(
+            from: downloadURL,
+            progressHandler: { progress in
+                // Only update if we're still in the downloading state
+                if case .downloading = updateStatus {
+                    updateStatus = .downloading(progress: progress)
+                }
+            },
+            completion: { result in
+                withAnimation {
+                    switch result {
+                    case .success(let dmgURL):
+                        updateStatus = .readyToInstall(dmgURL: dmgURL, tag: tag)
+                    case .failure(let error):
+                        updateStatus = .error(error.localizedDescription)
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 4) {
+                            withAnimation { restoreAvailableState() }
+                        }
+                    }
+                }
+            }
+        )
+    }
+
+    private func cancelDownload() {
+        UpdateChecker.shared.cancelDownload()
+        withAnimation { restoreAvailableState() }
+    }
+
+    private func installUpdate() {
+        guard case .readyToInstall(let dmgURL, _) = updateStatus else { return }
+        withAnimation { updateStatus = .installing }
+
+        UpdateChecker.install(dmgAt: dmgURL) { result in
+            switch result {
+            case .relaunching:
+                // App is about to terminate — no UI update needed
+                break
+            case .openedForManualInstall:
+                // App will also terminate after opening Finder — no UI update needed
+                break
+            case .failed(let msg):
+                withAnimation { updateStatus = .error("Install failed: \(msg)") }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+                    withAnimation { restoreAvailableState() }
+                }
+            }
+        }
+    }
+
+    private func openPageURL() {
+        guard let url = cachedPageURL else { return }
         NSWorkspace.shared.open(url)
+    }
+
+    /// Restores the .available state using the values cached when the check completed.
+    private func restoreAvailableState() {
+        guard !cachedUpdateTag.isEmpty,
+              let pageURL = cachedPageURL else {
+            updateStatus = .idle
+            return
+        }
+        updateStatus = .available(
+            tag:         cachedUpdateTag,
+            downloadURL: cachedDownloadURL,
+            pageURL:     pageURL
+        )
     }
 }
 
