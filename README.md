@@ -28,14 +28,20 @@ The macOS WiFi icon only shows that you are connected to a router, not whether y
 
 ## Features
 
-🛜 **Ditch the boring Wi-Fi icon** <br>
-Online Indicator brings a smarter network experience to your menu bar with one live status icon that clearly shows your connection and gives you quick access to Wi Fi controls and settings.
+🛜 **Ditch The Boring Wi-Fi Icon** <br>
+Online Indicator brings a smarter network experience to your menu bar with a live status icon that clearly shows your connection and gives you quick access to Wi Fi controls and settings.
 
-🎨 **Make it yours** <br>
+🎨 **Make Every State Completely Yours!** <br>
 Choose from 17 ready made Icon Sets or use any SF Symbol, set custom colors and labels for each state, and save your setup as your own Icon Set to switch anytime with a single tap.
 
+💚**Your Icon, Your Rules.** <br>
+Why should a menu bar icon only ever do one thing? With Online Indicator, your left and right clicks each perform different actions and you can decide which does what. Swap them if the defaults do not feel right or disable custom actions entirely and just use the dropdown. You are always in control.
+
+🪄**Fast and Simple Network Control** <br>
+Control your Wi Fi connection and access network settings directly from the menu with a single click. Instantly view your current IP address with live updates and copy it to your clipboard for quick and easy sharing without needing additional tools or steps. For a more minimal and clean menu, the IP address display can also be turned off.
+
 📡 **Flexible monitoring** <br>
-Choose any URL to ping and set the check frequency from every 30 seconds to once an hour, or tweak it to your liking.
+Decide how often Online Indicator checks your network by using the default presets of 30 seconds, 1, 2, or 5 minutes or set your own custom interval. By default it pings Apple’s captive portal server, but you can point it to any URL you trust, whether your own server, company endpoint, or a custom address, ensuring reliable and flexible connectivity monitoring.
 
 👀 **Quick IP peek** <br>
 Your IPv4 and IPv6 are always one click away in the menu. Tap to copy instantly, or hide them for a cleaner look.
